@@ -33,17 +33,10 @@ class SubscriptionController extends Controller
     public function index(Request $request)
     {
         try {
-             $filters = [
-                'search' => $request->search ?? null,
-                'active' => $request->active ?? null,
-                'from_date' => $request->from_date ?? null,
-                'to_date' => $request->to_date ?? null,
-                'company_id' => $request->company_id ?? null,
-                'package_id' => $request->package_id ?? null,
-                'expires_at' => $request->expires_at ?? null,
-            ];
+            $filters = $request->only(['search', 'company_id', 'package_id', 'expires_at', 'active', 'from_date', 'to_date']);
 
-
+            $items = $this->itemRepository->getAllItems($this->model, $filters, $request->per_page ?? 50, true, ['package']);
+            $counts = $this->itemRepository->getCount($this->model, $filters);
             $packages = Package::active()->get();
 
             $items = $this->itemRepository->getAllItems($this->model, $filters, 50);
@@ -80,7 +73,7 @@ class SubscriptionController extends Controller
                 __('messages.subscriptions_retrieved'),
                 $result
             );
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Failed to retrieve subscriptions', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -165,11 +158,11 @@ class SubscriptionController extends Controller
             $subscription = $this->itemRepository->createItem($this->model, [
                 'company_id' => $data['company_id'],
                 'package_id' => $data['package_id'],
-                'subscribed_at' => $subscribedAt,
-                'expires_at' => $data['expires_at'] ?? $expiresAt ,
+                'subscribed_at' => $data['subscribed_at'] ?? $subscribedAt,
+                'expires_at' => $data['expires_at'] ?? $expiresAt,
                 'num_of_cars' => $data['num_of_cars'],
-                'price' => $totalPrice,
-                'price_with_tax' => $data['total_price_with_tax'] ?? $totalPrice * 1.15,
+                'price' => $data['price'] ?? $totalPrice,
+                'price_with_tax' => $data['price_with_tax'] ?? $data['total_price_with_tax'] ?? ($data['price'] ?? $totalPrice) * 1.15,
                 'payment_status' => $data['payment_status'],
             ]);
 
@@ -225,6 +218,7 @@ class SubscriptionController extends Controller
 
             $subscription = $this->itemRepository->getItemById($this->model, $id);
 
+            /*
             if (isset($data['company_id'])) {
                 $company = $this->companyService->getCompanyById($data['company_id']);
                 if (!$company) {
@@ -235,6 +229,7 @@ class SubscriptionController extends Controller
                     );
                 }
             }
+            */
 
             // Recalculate price if package or vehicle count changes
             if (isset($data['package_id']) || isset($data['num_of_cars'])) {
@@ -272,4 +267,21 @@ class SubscriptionController extends Controller
         }
     }
 
+    public function destroy($id)
+    {
+        try {
+            $this->itemRepository->deleteItem($this->model, $id);
+
+            return ApiController::respondWithSuccess(
+                __('messages.subscription_deleted'),
+                null
+            );
+        } catch (\Exception $e) {
+            return ApiController::respondWithError(
+                __('messages.subscription_delete_failed'),
+                $e->getMessage(),
+                500
+            );
+        }
+    }
 }

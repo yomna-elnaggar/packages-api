@@ -20,6 +20,11 @@ class SubscriptionRequest extends FormRequest
             'package_id' => ($isUpdate ? 'sometimes' : 'required') . '|uuid|exists:packages,id',
             'num_of_cars' => ($isUpdate ? 'sometimes' : 'required') . '|integer|min:1',
             'payment_status' => ($isUpdate ? 'sometimes' : 'required') . '|in:paid,free,unpaid',
+            'expires_at' => 'nullable|date',
+            'subscribed_at' => 'nullable|date',
+            'total_price_with_tax' => 'nullable|numeric',
+            'price_with_tax' => 'nullable|numeric',
+            'price' => 'nullable|numeric',
         ];
     }
 }

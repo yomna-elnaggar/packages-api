@@ -6,12 +6,24 @@ use App\Interfaces\CRUDRepositoryInterface;
 
 class CRUDRepository implements CRUDRepositoryInterface
 {
-    public function getAllItems($model, array $filters = [], $perPage = 50, $latest = true)
+    public function getAllItems($model, array $filters = [], $perPage = 50, $latest = true, $with = [])
     {
         $query = $model::query();
-        
+
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
         if ($latest) {
             $query->latest();
+        }
+
+        if (isset($filters['ids'])) {
+            $query->whereIn('id', (array)$filters['ids']);
+        }
+
+        if (isset($filters['not_ids'])) {
+            $query->whereNotIn('id', (array)$filters['not_ids']);
         }
 
         if (method_exists($model, 'scopeFilter')) {
@@ -19,7 +31,6 @@ class CRUDRepository implements CRUDRepositoryInterface
         }
 
         if ($perPage) {
-            // retain array filters in pagination links
             return $query->paginate($perPage)->appends(request()->all());
         }
 
@@ -55,6 +66,34 @@ class CRUDRepository implements CRUDRepositoryInterface
         $item->$column = !$item->$column;
         $item->save();
         return $item;
+    }
+
+    public function getTrashedItems($model, array $filters = [], $perPage = 50)
+    {
+        $query = $model::onlyTrashed();
+
+        if (method_exists($model, 'scopeFilter')) {
+            $query->filter($filters);
+        }
+
+        if ($perPage) {
+            return $query->paginate($perPage)->appends(request()->all());
+        }
+
+        return $query->get();
+    }
+
+    public function restoreItem($model, $id)
+    {
+        $item = $model::onlyTrashed()->findOrFail($id);
+        $item->restore();
+        return $item;
+    }
+
+    public function forceDeleteItem($model, $id)
+    {
+        $item = $model::onlyTrashed()->findOrFail($id);
+        return $item->forceDelete();
     }
 
     public function getCount($model, array $filters = [])

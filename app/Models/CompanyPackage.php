@@ -64,10 +64,9 @@ class CompanyPackage extends Model
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];
-
-            $query->where(function ($q) use ($search) {
-                   $q->where('title->ar', 'like', "%{$search}%")
-          ->orWhere('title->en', 'like', "%{$search}%");
+            $query->whereHas('package', function ($q) use ($search) {
+                $q->where('title->ar', 'like', "%{$search}%")
+                  ->orWhere('title->en', 'like', "%{$search}%");
             });
         }
         if (!empty($filters['from_date'])) {
