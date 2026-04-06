@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             \App\Http\Middleware\LocalizationMiddleware::class,
         ]);
+
+        $middleware->alias([
+            'type' => \App\Http\Middleware\TypeMiddleware::class,
+            'company' => \App\Http\Middleware\CompanyMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
